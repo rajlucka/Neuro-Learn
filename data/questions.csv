@@ -1,0 +1,21 @@
+Question_ID,Grade,Subject,Question_Text,Option_A,Option_B,Option_C,Option_D,Correct_Answer,Topics,Difficulty
+Q01,3,Math,What is 6 x 7?,36,42,48,54,B,Multiplication,Easy
+Q02,3,Math,What is 9 x 8?,63,70,72,81,C,Multiplication,Easy
+Q03,3,Math,What is 48 divided by 6?,6,7,8,9,C,Division,Easy
+Q04,3,Math,What is 63 divided by 9?,6,7,8,9,B,Division,Easy
+Q05,3,Science,What do plants need to make their own food?,Water only,Sunlight and water only,Sunlight and water and carbon dioxide,Soil only,C,Photosynthesis,Easy
+Q06,3,Science,What gas do plants release during photosynthesis?,Carbon dioxide,Nitrogen,Oxygen,Hydrogen,C,Photosynthesis,Easy
+Q07,3,Science,Which state of matter has a definite shape and volume?,Gas,Liquid,Plasma,Solid,D,States of Matter,Easy
+Q08,3,Science,Which state of matter takes the shape of its container but has a fixed volume?,Solid,Liquid,Gas,Plasma,B,States of Matter,Easy
+Q09,4,Math,What is the area of a rectangle with length 8 and width 5?,30,35,40,45,C,Geometry,Medium
+Q10,4,Math,What is the perimeter of a rectangle with length 6 and width 3?,15,16,18,20,C,Geometry,Medium
+Q11,4,Math,"A bag has 4 red marbles, 3 blue, and 3 green. What fraction are red?",4/7,4/3,2/5,2/10,C,Fractions,Medium
+Q12,4,Math,Which fraction is equivalent to 2/4?,1/4,1/3,1/2,3/4,C,Fractions,Medium
+Q13,4,Science,Which layer of Earth is the thickest?,Crust,Mantle,Outer core,Inner core,B,Earth Science,Medium
+Q14,4,Science,What type of rock is formed from cooled magma?,Sedimentary,Metamorphic,Igneous,Fossil,C,Earth Science,Medium
+Q15,4,Science,What happens to most substances when they are heated?,They contract,They expand,They solidify,They stay the same,B,Physical Science,Medium
+Q16,4,Science,What happens to water when cooled below 0 degrees Celsius?,It evaporates,It expands into gas,It freezes into ice,It stays liquid,C,Physical Science,Medium
+Q17,5,Math,Solve for x: 3x + 6 = 21,3,4,5,6,C,Algebra,Hard
+Q18,5,Math,Solve for x: 2x - 4 = 10,5,6,7,8,C,Algebra,Hard
+Q19,5,Science,A student pushes a box with 10 N and it does not move. What is the friction force?,Less than 10 N,More than 10 N,Exactly 10 N,There is no friction,C,Forces and Motion,Hard
+Q20,5,Science,Two equal forces act on an object in opposite directions. What happens?,It speeds up,It slows down,It does not move,It moves sideways,C,Forces and Motion,Hard
