@@ -1,21 +1,37 @@
 Question_ID,Grade,Subject,Question_Text,Option_A,Option_B,Option_C,Option_D,Correct_Answer,Topics,Difficulty
 Q01,3,Math,What is 6 x 7?,36,42,48,54,B,Multiplication,Easy
 Q02,3,Math,What is 9 x 8?,63,70,72,81,C,Multiplication,Easy
-Q03,3,Math,What is 48 divided by 6?,6,7,8,9,C,Division,Easy
-Q04,3,Math,What is 63 divided by 9?,6,7,8,9,B,Division,Easy
-Q05,3,Science,What do plants need to make their own food?,Water only,Sunlight and water only,Sunlight and water and carbon dioxide,Soil only,C,Photosynthesis,Easy
-Q06,3,Science,What gas do plants release during photosynthesis?,Carbon dioxide,Nitrogen,Oxygen,Hydrogen,C,Photosynthesis,Easy
-Q07,3,Science,Which state of matter has a definite shape and volume?,Gas,Liquid,Plasma,Solid,D,States of Matter,Easy
-Q08,3,Science,Which state of matter takes the shape of its container but has a fixed volume?,Solid,Liquid,Gas,Plasma,B,States of Matter,Easy
-Q09,4,Math,What is the area of a rectangle with length 8 and width 5?,30,35,40,45,C,Geometry,Medium
-Q10,4,Math,What is the perimeter of a rectangle with length 6 and width 3?,15,16,18,20,C,Geometry,Medium
-Q11,4,Math,"A bag has 4 red marbles, 3 blue, and 3 green. What fraction are red?",4/7,4/3,2/5,2/10,C,Fractions,Medium
-Q12,4,Math,Which fraction is equivalent to 2/4?,1/4,1/3,1/2,3/4,C,Fractions,Medium
-Q13,4,Science,Which layer of Earth is the thickest?,Crust,Mantle,Outer core,Inner core,B,Earth Science,Medium
-Q14,4,Science,What type of rock is formed from cooled magma?,Sedimentary,Metamorphic,Igneous,Fossil,C,Earth Science,Medium
-Q15,4,Science,What happens to most substances when they are heated?,They contract,They expand,They solidify,They stay the same,B,Physical Science,Medium
-Q16,4,Science,What happens to water when cooled below 0 degrees Celsius?,It evaporates,It expands into gas,It freezes into ice,It stays liquid,C,Physical Science,Medium
-Q17,5,Math,Solve for x: 3x + 6 = 21,3,4,5,6,C,Algebra,Hard
-Q18,5,Math,Solve for x: 2x - 4 = 10,5,6,7,8,C,Algebra,Hard
-Q19,5,Science,A student pushes a box with 10 N and it does not move. What is the friction force?,Less than 10 N,More than 10 N,Exactly 10 N,There is no friction,C,Forces and Motion,Hard
-Q20,5,Science,Two equal forces act on an object in opposite directions. What happens?,It speeds up,It slows down,It does not move,It moves sideways,C,Forces and Motion,Hard
+Q03,3,Math,What is 4 x 12?,44,46,48,52,C,Multiplication,Medium
+Q04,3,Math,What is 48 divided by 6?,6,7,8,9,C,Division,Easy
+Q05,3,Math,What is 63 divided by 9?,6,7,8,9,B,Division,Easy
+Q06,3,Math,What is 84 divided by 7?,10,11,12,13,C,Division,Medium
+Q07,3,Science,What do plants need to make their own food?,Water only,Sunlight and water only,Sunlight and water and carbon dioxide,Soil only,C,Photosynthesis,Easy
+Q08,3,Science,What gas do plants release during photosynthesis?,Carbon dioxide,Nitrogen,Oxygen,Hydrogen,C,Photosynthesis,Easy
+Q09,3,Science,Which part of the plant captures sunlight for photosynthesis?,Roots,Stem,Leaves,Flowers,C,Photosynthesis,Medium
+Q10,3,Science,Which state of matter has a definite shape and volume?,Gas,Liquid,Plasma,Solid,D,States of Matter,Easy
+Q11,3,Science,Which state of matter takes the shape of its container but has a fixed volume?,Solid,Liquid,Gas,Plasma,B,States of Matter,Easy
+Q12,3,Science,What happens to water when it is heated to 100 degrees Celsius?,It freezes,It contracts,It evaporates into steam,It becomes denser,C,States of Matter,Medium
+Q13,4,Math,What is the area of a rectangle with length 8 and width 5?,30,35,40,45,C,Geometry,Medium
+Q14,4,Math,What is the perimeter of a square with side length 6?,20,22,24,28,C,Geometry,Medium
+Q15,4,Math,What is the area of a triangle with base 6 and height 4?,10,12,14,16,B,Geometry,Hard
+Q16,4,Math,"A bag has 4 red marbles, 3 blue, and 3 green. What fraction are red?",4/7,4/3,2/5,2/10,C,Fractions,Medium
+Q17,4,Math,Which fraction is equivalent to 2/4?,1/4,1/3,1/2,3/4,C,Fractions,Medium
+Q18,4,Math,What is 3/4 - 1/4?,1/4,1/2,3/8,2/4,B,Fractions,Medium
+Q19,4,Science,Which layer of Earth is the thickest?,Crust,Mantle,Outer core,Inner core,B,Earth Science,Medium
+Q20,4,Science,What type of rock is formed from cooled magma?,Sedimentary,Metamorphic,Igneous,Fossil,C,Earth Science,Medium
+Q21,4,Science,What causes day and night on Earth?,The moon blocking the sun,Earth spinning on its axis,Earth moving around the sun,The sun moving around Earth,B,Earth Science,Hard
+Q22,4,Science,What happens to most substances when they are heated?,They contract,They expand,They solidify,They stay the same,B,Physical Science,Medium
+Q23,4,Science,What happens to water when cooled below 0 degrees Celsius?,It evaporates,It expands into gas,It freezes into ice,It stays liquid,C,Physical Science,Medium
+Q24,4,Science,Which material is the best conductor of heat?,Wood,Plastic,Rubber,Metal,D,Physical Science,Medium
+Q25,5,Math,Solve for x: 3x + 6 = 21,3,4,5,6,C,Algebra,Hard
+Q26,5,Math,Solve for x: 2x - 4 = 10,5,6,7,8,C,Algebra,Hard
+Q27,5,Math,Solve for x: 5x + 5 = 30,4,5,6,7,B,Algebra,Hard
+Q28,5,Science,A student pushes a box with 10 N and it does not move. What is the friction force?,Less than 10 N,More than 10 N,Exactly 10 N,There is no friction,C,Forces and Motion,Hard
+Q29,5,Science,Two equal forces act on an object in opposite directions. What happens?,It speeds up,It slows down,It does not move,It moves sideways,C,Forces and Motion,Hard
+Q30,5,Science,What force makes a ball thrown upward eventually come back down?,Friction,Magnetism,Gravity,Applied force,C,Forces and Motion,Hard
+Q31,4,Math,A bar graph shows 12 apples on Monday and 8 on Tuesday. How many more apples were there on Monday?,2,4,6,8,B,Data and Graphs,Medium
+Q32,4,Math,A pictograph uses one symbol to represent 5 students. If there are 4 symbols how many students are there?,10,15,20,25,C,Data and Graphs,Medium
+Q33,5,Math,The temperatures for a week are 72 74 70 75 69. What is the range?,4,5,6,7,C,Data and Graphs,Hard
+Q34,3,Science,What do all living things need to survive?,Sunlight only,Food water and air,Soil and water,Light and soil,B,Life Science,Easy
+Q35,4,Science,Which of the following is a characteristic of all living things?,They can fly,They live in water,They grow and reproduce,They are green,C,Life Science,Medium
+Q36,5,Science,A frog starts as an egg then becomes a tadpole and then a frog. What is this called?,Hibernation,Migration,Metamorphosis,Adaptation,C,Life Science,Hard

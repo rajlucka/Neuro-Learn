@@ -46,6 +46,12 @@ CONCEPT_EXPLANATIONS = {
         "To solve for x, do the same thing to both sides of the equals sign "
         "until x is by itself."
     ),
+    "Data and Graphs": (
+        "Data and graphs help us read and understand information visually. "
+        "A bar graph uses bars to compare amounts, a line graph shows change over time, "
+        "and a pictograph uses pictures to represent numbers. "
+        "Practice by reading graphs carefully and answering questions about what they show."
+    ),
     # Science
     "Photosynthesis": (
         "Photosynthesis is the process plants use to make their own food. "
@@ -73,6 +79,12 @@ CONCEPT_EXPLANATIONS = {
         "When two forces on an object are equal and opposite, the object does not move. "
         "Gravity pulls objects toward Earth, friction slows objects down, "
         "and applied forces start or change motion."
+    ),
+    "Life Science": (
+        "Life science is the study of living things and how they grow, reproduce, and survive. "
+        "All living things need food, water, and air. "
+        "Animals and plants have life cycles, and species can change over many generations "
+        "through a process called natural selection."
     ),
 }
 

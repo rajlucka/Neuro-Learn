@@ -2,15 +2,14 @@
 diagnostic_exam_generator.py
 
 Builds a targeted diagnostic exam from the question bank based on a
-student's identified weak and needs-review concepts.
+student's weak and needs-review concepts.
 
-Question selection strategy (IRT-inspired difficulty targeting):
-    Weak concepts        -> Easy first, then Medium
-    Needs Review         -> Medium first, then Hard
-    Mastered (optional)  -> one Hard stretch question
+Difficulty selection follows an IRT-inspired heuristic:
+    Weak concepts        -> Easy questions first, then Medium
+    Needs Review         -> Medium questions first, then Hard
 
-Questions are sorted Easy -> Medium -> Hard within each concept so the
-student encounters manageable problems before harder ones.
+Questions are ordered Easy -> Hard within each concept so students
+encounter manageable problems before harder ones.
 """
 
 import logging
@@ -24,11 +23,6 @@ from config import THRESHOLD_WEAK, EXAM_TEMPLATE_WEAK, EXAM_TEMPLATE_REVIEW
 logger = logging.getLogger(__name__)
 
 DIFFICULTY_ORDER = {"Easy": 1, "Medium": 2, "Hard": 3}
-
-SELECTION_TEMPLATE = {
-    "Weak":         EXAM_TEMPLATE_WEAK,
-    "Needs Review": EXAM_TEMPLATE_REVIEW,
-}
 
 
 def generate_diagnostic_exam(
@@ -47,27 +41,30 @@ def generate_diagnostic_exam(
         seed:           Random seed for reproducibility.
 
     Returns:
-        {concept: [question_id, ...]} ordered Easy -> Hard within each concept.
+        {concept: [question_id, ...]} ordered Easy -> Hard per concept.
+        Concepts with no matching bank questions are excluded from the output.
     """
     random.seed(seed)
     exam = defaultdict(list)
 
-    # Pre-group bank rows by (topic, difficulty) for fast lookup
-    bank_index = {}
+    # Pre-group bank entries by (topic, difficulty) for fast lookup
+    bank_index = defaultdict(list)
     for q_id, row in question_bank.iterrows():
-        key = (row["Topic"], row["Difficulty"])
-        bank_index.setdefault(key, []).append(q_id)
+        bank_index[(row["Topic"], row["Difficulty"])].append(q_id)
 
     for concept in weak_concepts:
-        score = mastery_scores.get(concept, 0.0)
-        template = _select_template(score)
+        score    = mastery_scores.get(concept, 0.0)
+        template = EXAM_TEMPLATE_WEAK if score < THRESHOLD_WEAK else EXAM_TEMPLATE_REVIEW
 
         for difficulty, n in template.items():
             pool = bank_index.get((concept, difficulty), [])
             random.shuffle(pool)
             exam[concept].extend(pool[:n])
 
-        # Sort this concept's questions Easy -> Hard
+        if not exam[concept]:
+            del exam[concept]
+            continue
+
         exam[concept] = sorted(
             exam[concept],
             key=lambda qid: DIFFICULTY_ORDER.get(
@@ -84,8 +81,6 @@ def format_exam_report(exam: dict, question_bank: pd.DataFrame) -> str:
     """Render the diagnostic exam as a plain-text string for CLI output."""
     lines = []
     for concept, q_ids in exam.items():
-        if not q_ids:
-            continue
         lines.append(f"\n  {concept}")
         lines.append("  " + "-" * 30)
         for qid in q_ids:
@@ -101,10 +96,3 @@ def format_exam_report(exam: dict, question_bank: pd.DataFrame) -> str:
                     lines.append(f"    {opt}) {row.get(col, '')}")
             lines.append(f"    Answer: {row.get('Correct_Answer', '?')}")
     return "\n".join(lines)
-
-
-def _select_template(score: float) -> dict:
-    """Choose the difficulty distribution based on how weak the student is."""
-    if score < THRESHOLD_WEAK:
-        return SELECTION_TEMPLATE["Weak"]
-    return SELECTION_TEMPLATE["Needs Review"]

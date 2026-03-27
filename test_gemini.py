@@ -11,7 +11,7 @@ print(f"Key preview: {key[:8]}..." if key else "Key is empty")
 
 try:
     genai.configure(api_key=key)
-    model    = genai.GenerativeModel("gemini-1.5-flash")
+    model    = genai.GenerativeModel("gemini-2.5-flash-lite")
     response = model.generate_content("Say hello in one sentence.")
     print(f"\nGemini response: {response.text}")
 except Exception as e:
