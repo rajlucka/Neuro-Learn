@@ -14,15 +14,9 @@ to adjust without touching other modules.
 
 import logging
 import pandas as pd
+from config import THRESHOLD_MASTERED, THRESHOLD_WEAK, LABEL_MASTERED, LABEL_REVIEW, LABEL_WEAK
 
 logger = logging.getLogger(__name__)
-
-THRESHOLD_MASTERED = 0.75
-THRESHOLD_WEAK     = 0.40
-
-LABEL_MASTERED = "Mastered"
-LABEL_REVIEW   = "Needs Review"
-LABEL_WEAK     = "Weak"
 
 
 def classify_mastery(mastery_df: pd.DataFrame) -> pd.DataFrame:

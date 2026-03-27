@@ -83,9 +83,9 @@ def load_question_bank(filepath: str = None) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
+
 # Internal helpers
-# ---------------------------------------------------------------------------
+
 
 def _parse_topics(raw: str) -> list:
     """Split a pipe-separated topic string into a cleaned list."""

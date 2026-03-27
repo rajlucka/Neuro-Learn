@@ -7,12 +7,15 @@ Runs the full analysis pipeline and prints a structured report to stdout.
 Usage:
     python main.py                   # report for all students
     python main.py --student S01     # report for one student
-    python main.py --no-llm          # skip Claude API, use rule-based outputs
+    python main.py --no-llm          # skip Gemini API, use rule-based outputs
 """
 
 import sys
 import argparse
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.insert(0, "src")
 
@@ -23,51 +26,34 @@ from weakness_detector         import classify_mastery, build_summary_report
 from diagnostic_exam_generator import generate_diagnostic_exam, format_exam_report
 from ai_feedback               import generate_feedback, generate_study_plan
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+# Only show warnings and above -- suppresses all INFO logs from modules
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
-DIVIDER      = "=" * 60
-THIN_DIVIDER = "-" * 60
+DIVIDER      = "=" * 55
+THIN_DIVIDER = "-" * 40
 
 
 def run(target_student: str = None, use_llm: bool = True) -> None:
     print(f"\n{DIVIDER}")
-    print("  ADAPTIVE LEARNING DIAGNOSTIC SYSTEM -- PHASE 1")
+    print("  NEURO LEARN -- ADAPTIVE DIAGNOSTIC SYSTEM")
     print(DIVIDER)
 
-    
-    # Step 1: Load data
-    
-    print("\n[1/6] Loading data...")
+    # ------------------------------------------------------------------
+    # Load and process all data
+    # ------------------------------------------------------------------
     student_df  = load_student_answers()
     question_df = load_question_metadata()
     qbank_df    = load_question_bank()
 
-    
-    # Step 2: Evaluate answers
-    
-    print("[2/6] Evaluating answers...")
-    answer_matrix = evaluate_answers(student_df, question_df)
-
-    
-    # Step 3: Map to concepts and compute mastery
-    
-    print("[3/6] Computing concept mastery...")
+    answer_matrix  = evaluate_answers(student_df, question_df)
     concept_scores = map_scores_to_concepts(answer_matrix, question_df)
     mastery_df     = calculate_mastery(concept_scores, question_df)
+    classified_df  = classify_mastery(mastery_df)
+    report         = build_summary_report(mastery_df, classified_df)
 
-    print("\nMastery Matrix:")
-    print(mastery_df.to_string())
-
-    
-    # Step 4: Detect weaknesses
-    
-    print("\n[4/6] Detecting weaknesses...")
-    classified_df = classify_mastery(mastery_df)
-    report        = build_summary_report(mastery_df, classified_df)
-
-    
-    # Steps 5 and 6: Per-student diagnostic + feedback
-    
+    # ------------------------------------------------------------------
+    # Per-student output
+    # ------------------------------------------------------------------
     students = [target_student] if target_student else list(report.keys())
 
     for sid in students:
@@ -79,12 +65,11 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
         scores  = data["scores"]
         labels  = data["labels"]
         weak    = data["weak_concepts"]
-        name    = student_df.loc[sid, "Name"] if "Name" in student_df.columns else sid
+        name    = student_df.loc[sid, "Name"]  if "Name"  in student_df.columns else sid
         grade   = student_df.loc[sid, "Grade"] if "Grade" in student_df.columns else "?"
         overall = sum(scores.values()) / len(scores)
 
-        print(f"\n{DIVIDER}")
-        print(f"  Student: {name} ({sid})  |  Grade {grade}  |  Overall: {overall:.0%}")
+        print(f"\n  {name} ({sid})  |  Grade {grade}  |  Overall: {overall:.0%}")
         print(THIN_DIVIDER)
 
         for concept, score in sorted(scores.items()):
@@ -92,20 +77,22 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
             label = labels.get(concept, "?")
             print(f"  {concept:<25} [{bar}] {score:.0%}  ({label})")
 
-        # -- Step 5: Diagnostic exam for students with weak concepts
-        print(f"\n[5/6] Diagnostic exam for {name}...")
+        # Diagnostic exam
         if weak:
             exam = generate_diagnostic_exam(
                 weak_concepts=weak,
                 mastery_scores=scores,
                 question_bank=qbank_df,
             )
+            print(f"\n  Diagnostic Exam")
+            print(THIN_DIVIDER)
             print(format_exam_report(exam, qbank_df))
         else:
-            print(f"  No diagnostic needed -- {name} has mastered all concepts.")
+            print(f"\n  No diagnostic needed -- {name} has mastered all concepts.")
 
-        # -- Step 6: AI feedback and study plan
-        print(f"\n[6/6] Feedback and study plan for {name}...")
+        # Feedback and study plan
+        print(f"\n  Feedback")
+        print(THIN_DIVIDER)
         feedback = generate_feedback(
             student_name=name,
             weak_concepts=weak,
@@ -114,6 +101,8 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
         )
         print(feedback)
 
+        print(f"\n  Study Plan")
+        print(THIN_DIVIDER)
         plan = generate_study_plan(
             student_name=name,
             weak_concepts=weak,
@@ -122,14 +111,11 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
         )
         print(plan)
 
-    print(f"\n{DIVIDER}")
-    print("Pipeline complete.")
-    print("Launch the dashboard with:  streamlit run dashboard/app.py")
-    print(DIVIDER)
+    print(f"\n{DIVIDER}\n")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Adaptive Learning Diagnostic System")
+    parser = argparse.ArgumentParser(description="Neuro Learn Diagnostic System")
     parser.add_argument("--student", type=str, default=None, help="Run for a single Student_ID")
     parser.add_argument("--no-llm", action="store_true",    help="Use rule-based outputs only")
     args = parser.parse_args()

@@ -19,16 +19,15 @@ from collections import defaultdict
 
 import pandas as pd
 
-from weakness_detector import THRESHOLD_MASTERED, THRESHOLD_WEAK
+from config import THRESHOLD_WEAK, EXAM_TEMPLATE_WEAK, EXAM_TEMPLATE_REVIEW
 
 logger = logging.getLogger(__name__)
 
 DIFFICULTY_ORDER = {"Easy": 1, "Medium": 2, "Hard": 3}
 
-# How many questions to pull per difficulty tier, keyed by mastery tier
 SELECTION_TEMPLATE = {
-    "Weak":         {"Easy": 2, "Medium": 1},
-    "Needs Review": {"Medium": 2, "Hard": 1},
+    "Weak":         EXAM_TEMPLATE_WEAK,
+    "Needs Review": EXAM_TEMPLATE_REVIEW,
 }
 
 
@@ -83,27 +82,24 @@ def generate_diagnostic_exam(
 
 def format_exam_report(exam: dict, question_bank: pd.DataFrame) -> str:
     """Render the diagnostic exam as a plain-text string for CLI output."""
-    lines = [
-        "=" * 55,
-        "ADAPTIVE DIAGNOSTIC EXAM",
-        "=" * 55,
-    ]
+    lines = []
     for concept, q_ids in exam.items():
-        lines.append(f"\n{concept}")
-        lines.append("-" * 30)
+        if not q_ids:
+            continue
+        lines.append(f"\n  {concept}")
+        lines.append("  " + "-" * 30)
         for qid in q_ids:
             if qid not in question_bank.index:
                 continue
             row  = question_bank.loc[qid]
             diff = row.get("Difficulty", "?")
             text = row.get("Question_Text", "")
-            lines.append(f"  [{diff}] {qid}: {text}")
+            lines.append(f"  [{diff}] {text}")
             for opt in ["A", "B", "C", "D"]:
                 col = f"Option_{opt}"
                 if col in question_bank.columns:
-                    lines.append(f"         {opt}) {row.get(col, '')}")
-            lines.append(f"         Answer: {row.get('Correct_Answer', '?')}")
-    lines.append("\n" + "=" * 55)
+                    lines.append(f"    {opt}) {row.get(col, '')}")
+            lines.append(f"    Answer: {row.get('Correct_Answer', '?')}")
     return "\n".join(lines)
 
 

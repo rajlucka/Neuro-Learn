@@ -26,22 +26,18 @@ from weakness_detector         import classify_mastery, build_summary_report
 from diagnostic_exam_generator import generate_diagnostic_exam, format_exam_report
 from ai_feedback               import generate_feedback, generate_study_plan
 
-
+# ---------------------------------------------------------------------------
 # Page configuration
-
+# ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="Learning Diagnostics", layout="centered")
 
-TIER_COLORS = {
-    "Mastered":     "#2ecc71",
-    "Needs Review": "#f0a500",
-    "Weak":         "#e74c3c",
-}
+from config import TIER_COLORS
 
-
+# ---------------------------------------------------------------------------
 # Data pipeline
 # Cached so the CSV reads and calculations only run once per session.
-
+# ---------------------------------------------------------------------------
 
 @st.cache_data
 def run_pipeline():
@@ -61,9 +57,9 @@ def run_pipeline():
 
 qbank_df, summary, meta = run_pipeline()
 
-
+# ---------------------------------------------------------------------------
 # Sidebar -- student selection
-
+# ---------------------------------------------------------------------------
 
 st.sidebar.title("Student Login")
 student_ids = list(summary.keys())
@@ -72,9 +68,9 @@ sid = st.sidebar.selectbox("Select your name", student_ids,
 
 use_llm = st.sidebar.toggle("AI-powered feedback", value=True)
 
-
+# ---------------------------------------------------------------------------
 # Pull this student's data
-
+# ---------------------------------------------------------------------------
 
 data         = summary[sid]
 scores       = data["scores"]
@@ -85,9 +81,9 @@ grade        = meta.loc[sid, "Grade"] if sid in meta.index else "?"
 overall      = sum(scores.values()) / len(scores) if scores else 0.0
 n_mastered   = sum(1 for l in labels.values() if l == "Mastered")
 
-
+# ---------------------------------------------------------------------------
 # Header
-
+# ---------------------------------------------------------------------------
 
 st.title("Your Learning Report")
 st.caption(f"Student: {name}   |   Grade {grade}")
@@ -99,9 +95,9 @@ col3.metric("Needs Work",         f"{len(weak)} concept(s)")
 
 st.divider()
 
-
+# ---------------------------------------------------------------------------
 # Concept mastery bar chart
-
+# ---------------------------------------------------------------------------
 
 st.subheader("Concept Mastery")
 
@@ -133,9 +129,9 @@ fig.add_vline(x=0.40, line_dash="dash", line_color="#e74c3c",
 fig.update_layout(xaxis_title="Mastery Score", yaxis_title="", showlegend=True)
 st.plotly_chart(fig, use_container_width=True)
 
-
+# ---------------------------------------------------------------------------
 # Weakness summary
-
+# ---------------------------------------------------------------------------
 
 st.divider()
 st.subheader("Concepts Needing Attention")
@@ -149,9 +145,9 @@ if weak:
 else:
     st.success(f"You have mastered every concept on this exam. Excellent work, {name}!")
 
-
+# ---------------------------------------------------------------------------
 # Personalized feedback
-
+# ---------------------------------------------------------------------------
 
 st.divider()
 st.subheader("Personalized Feedback")
@@ -166,9 +162,9 @@ if st.button("Get Feedback"):
         )
     st.text_area("", feedback, height=200, label_visibility="collapsed")
 
-
+# ---------------------------------------------------------------------------
 # Adaptive diagnostic exam
-
+# ---------------------------------------------------------------------------
 
 st.divider()
 st.subheader("Adaptive Diagnostic Exam")
@@ -184,9 +180,9 @@ if weak:
 else:
     st.info("No diagnostic exam needed -- you have mastered all concepts.")
 
-
+# ---------------------------------------------------------------------------
 # Study plan
-
+# ---------------------------------------------------------------------------
 
 st.divider()
 st.subheader("Study Plan")

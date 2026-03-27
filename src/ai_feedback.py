@@ -11,12 +11,13 @@ import os
 import logging
 import google.generativeai as genai
 from dotenv import load_dotenv
+from config import GEMINI_MODEL, LLM_TIMEOUT_SEC
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gemini-1.5-flash"
+MODEL = GEMINI_MODEL
 
 CONCEPT_EXPLANATIONS = {
     # Math
@@ -180,11 +181,11 @@ def _feedback_prompt(name: str, weak_concepts: list, scores: dict) -> str:
         f"They need help with the following Math and Science concepts "
         f"(with their current mastery level):\n"
         f"{score_lines}\n\n"
-        f"Write a short, warm, encouraging message (3-5 sentences) that:\n"
-        f"1. Acknowledges something they did well.\n"
-        f"2. Tells them which concept to focus on first and why.\n"
-        f"3. Gives one concrete, simple tip they can try today.\n"
-        f"Use simple language a 3rd-5th grader can understand. Plain text only."
+        f"Write exactly 3 sentences that:\n"
+        f"1. Acknowledge something they did well.\n"
+        f"2. Tell them which concept to focus on first and why.\n"
+        f"3. Give one concrete, simple tip they can try today.\n"
+        f"Use simple language a 3rd-5th grader can understand. Plain text only, no markdown."
     )
 
 
@@ -192,16 +193,18 @@ def _study_plan_prompt(name: str, weak_concepts: list, scores: dict) -> str:
     score_lines = "\n".join(
         f"  - {c}: {scores.get(c, 0):.0%}" for c in weak_concepts
     )
+    n_weeks = len(weak_concepts)
     return (
         f"You are a curriculum designer creating a study plan for a 3rd-5th grade student.\n"
         f"Student: {name}\n"
         f"Concepts to study (listed in recommended learning order):\n"
         f"{score_lines}\n\n"
-        f"Create a week-by-week study plan. For each week provide:\n"
-        f"  - The concept name\n"
-        f"  - 3 specific, actionable daily tasks\n"
-        f"  - One suggested practice resource (worksheet, video, hands-on activity, etc.)\n\n"
-        f"Keep language simple and encouraging for a 3rd-5th grader. Plain text only."
+        f"Create exactly {n_weeks} weeks, one week per concept above. Do not add extra weeks.\n"
+        f"For each week provide:\n"
+        f"  - The concept name as the week title\n"
+        f"  - 3 specific, actionable daily tasks (Monday, Tuesday, Wednesday)\n"
+        f"  - One suggested practice resource (worksheet, video, or hands-on activity)\n\n"
+        f"Keep language simple and encouraging for a 3rd-5th grader. Plain text only, no markdown."
     )
 
 
