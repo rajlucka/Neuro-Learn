@@ -1,1 +1,22 @@
-.env 
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+package-lock.json
+
+# Drizzle
+drizzle/migrations/
+
+# Data - keep CSVs, ignore generated DB file
+data/*.db
+
+# VS Code
+.vscode/

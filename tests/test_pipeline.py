@@ -21,7 +21,7 @@ import logging
 from dotenv import load_dotenv
 
 load_dotenv()
-sys.path.insert(0, "src")
+sys.path.insert(0, "src/python")
 
 from data_loader               import load_student_answers, load_question_metadata, load_question_bank
 from answer_evaluator          import evaluate_answers

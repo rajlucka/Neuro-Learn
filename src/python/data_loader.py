@@ -8,14 +8,15 @@ All file paths default to the data/ directory relative to this file.
 
 import os
 import logging
+from typing import Optional
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
 
-def load_student_answers(filepath: str = None) -> pd.DataFrame:
+def load_student_answers(filepath: Optional[str] = None) -> pd.DataFrame:
     """
     Load student exam responses from CSV.
 
@@ -32,7 +33,7 @@ def load_student_answers(filepath: str = None) -> pd.DataFrame:
     return df
 
 
-def load_question_metadata(filepath: str = None) -> pd.DataFrame:
+def load_question_metadata(filepath: Optional[str] = None) -> pd.DataFrame:
     """
     Load question definitions including the answer key, topics, and difficulty.
 
@@ -55,7 +56,7 @@ def load_question_metadata(filepath: str = None) -> pd.DataFrame:
     return df
 
 
-def load_question_bank(filepath: str = None) -> pd.DataFrame:
+def load_question_bank(filepath: Optional[str] = None) -> pd.DataFrame:
     """
     Load the question bank used when generating adaptive diagnostic exams.
 

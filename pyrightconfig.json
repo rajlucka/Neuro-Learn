@@ -1,0 +1,8 @@
+{
+  "pythonVersion": "3.11",
+  "venvPath": ".",
+  "venv": "neuro_learn",
+  "extraPaths": [
+    "src/python"
+  ]
+}

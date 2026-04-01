@@ -1,7 +1,7 @@
 """
 main.py
 
-Entry point for Phase 1 of the Adaptive Learning Diagnostic System.
+Entry point for the Adaptive Learning Diagnostic System.
 Runs the full analysis pipeline and prints a structured report to stdout.
 
 Usage:
@@ -13,11 +13,12 @@ Usage:
 import sys
 import argparse
 import logging
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
 
-sys.path.insert(0, "src")
+sys.path.insert(0, "src/python")
 
 from data_loader               import load_student_answers, load_question_metadata, load_question_bank
 from answer_evaluator          import evaluate_answers
@@ -26,21 +27,17 @@ from weakness_detector         import classify_mastery, build_summary_report
 from diagnostic_exam_generator import generate_diagnostic_exam, format_exam_report
 from ai_feedback               import generate_feedback, generate_study_plan
 
-# Only show warnings and above -- suppresses all INFO logs from modules
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
 DIVIDER      = "=" * 55
 THIN_DIVIDER = "-" * 40
 
 
-def run(target_student: str = None, use_llm: bool = True) -> None:
+def run(target_student: Optional[str] = None, use_llm: bool = True) -> None:
     print(f"\n{DIVIDER}")
     print("  NEURO LEARN -- ADAPTIVE DIAGNOSTIC SYSTEM")
     print(DIVIDER)
 
-    # ------------------------------------------------------------------
-    # Load and process all data
-    # ------------------------------------------------------------------
     student_df  = load_student_answers()
     question_df = load_question_metadata()
     qbank_df    = load_question_bank()
@@ -51,9 +48,6 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
     classified_df  = classify_mastery(mastery_df)
     report         = build_summary_report(mastery_df, classified_df)
 
-    # ------------------------------------------------------------------
-    # Per-student output
-    # ------------------------------------------------------------------
     students = [target_student] if target_student else list(report.keys())
 
     for sid in students:
@@ -65,8 +59,9 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
         scores  = data["scores"]
         labels  = data["labels"]
         weak    = data["weak_concepts"]
-        name    = student_df.loc[sid, "Name"]  if "Name"  in student_df.columns else sid
-        grade   = student_df.loc[sid, "Grade"] if "Grade" in student_df.columns else "?"
+        # str() cast resolves Pylance's "Scalar | Unknown" complaint from .loc
+        name    = str(student_df.loc[sid, "Name"])  if "Name"  in student_df.columns else sid
+        grade   = str(student_df.loc[sid, "Grade"]) if "Grade" in student_df.columns else "?"
         overall = sum(scores.values()) / len(scores)
 
         print(f"\n  {name} ({sid})  |  Grade {grade}  |  Overall: {overall:.0%}")
@@ -77,7 +72,6 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
             label = labels.get(concept, "?")
             print(f"  {concept:<25} [{bar}] {score:.0%}  ({label})")
 
-        # Diagnostic exam
         if weak:
             exam = generate_diagnostic_exam(
                 weak_concepts=weak,
@@ -90,7 +84,6 @@ def run(target_student: str = None, use_llm: bool = True) -> None:
         else:
             print(f"\n  No diagnostic needed -- {name} has mastered all concepts.")
 
-        # Feedback and study plan
         print(f"\n  Feedback")
         print(THIN_DIVIDER)
         feedback = generate_feedback(

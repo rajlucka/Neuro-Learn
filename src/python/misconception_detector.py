@@ -35,12 +35,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-def detect_misconceptions(
-    student_name: str,
-    explanation: str,
-    weak_concepts: list,
-    api_key: str = None
-) -> str:
+from typing import Optional
+def detect_misconceptions(student_name:
+                           str, explanation: 
+                           str, weak_concepts: 
+                           list, api_key: 
+                           Optional[str] = None) -> str:
     """
     Analyse a student's free-text explanation for conceptual misunderstandings.
 

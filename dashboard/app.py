@@ -21,13 +21,14 @@ Run with:
 
 import sys
 import os
-import html  # FIX 2: escape LLM output before unsafe_allow_html injection
+import html
+from typing import Optional
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "python"))
 
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -52,14 +53,11 @@ st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="c
 
 st.markdown("""
 <style>
-    /* Global font and background */
     html, body, [class*="css"] {
         font-family: 'Inter', 'Segoe UI', sans-serif;
         background-color: #f8f9fb;
         color: #1a1a2e;
     }
-
-    /* Card component used throughout the dashboard */
     .card {
         background: #ffffff;
         border-radius: 12px;
@@ -68,8 +66,6 @@ st.markdown("""
         border: 1px solid #e8eaed;
         box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
-
-    /* Metric cards in the header row */
     .metric-card {
         background: #ffffff;
         border-radius: 12px;
@@ -91,13 +87,9 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 0.04em;
     }
-
-    /* Tier badge pills */
-    .badge-mastered    { background:#dcfce7; color:#166534; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
-    .badge-review      { background:#fef9c3; color:#854d0e; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
-    .badge-weak        { background:#fee2e2; color:#991b1b; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
-
-    /* Section headings */
+    .badge-mastered { background:#dcfce7; color:#166534; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
+    .badge-review   { background:#fef9c3; color:#854d0e; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
+    .badge-weak     { background:#fee2e2; color:#991b1b; padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600; }
     .section-title {
         font-size: 1.05rem;
         font-weight: 700;
@@ -106,8 +98,6 @@ st.markdown("""
         padding-bottom: 6px;
         border-bottom: 2px solid #e8eaed;
     }
-
-    /* Cluster info box */
     .cluster-box {
         background: #eff6ff;
         border-left: 4px solid #3b82f6;
@@ -116,8 +106,6 @@ st.markdown("""
         font-size: 0.92rem;
         color: #1e3a5f;
     }
-
-    /* Root cause path box */
     .root-box {
         background: #fff7ed;
         border-left: 4px solid #f97316;
@@ -126,11 +114,7 @@ st.markdown("""
         font-size: 0.92rem;
         color: #7c2d12;
     }
-
-    /* Hide Streamlit default header padding */
     .block-container { padding-top: 2rem; }
-
-    /* Tab styling */
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
         border-radius: 8px 8px 0 0;
@@ -243,7 +227,6 @@ def run_full_pipeline(sid: str) -> dict:
         question_bank=qbank_df
     ) if weak else {}
 
-    # FIX 1: removed duplicate "learn_order" key that was previously listed twice
     return {
         "scores":       scores,
         "labels":       labels,
@@ -261,27 +244,25 @@ def run_full_pipeline(sid: str) -> dict:
 # PAGE 1 -- EXAM
 # ---------------------------------------------------------------------------
 
-def render_exam_page():
-    # Header
+def render_exam_page() -> None:
     st.markdown(f"<h1 style='font-size:2rem;font-weight:800;color:#1a1a2e;'>{APP_TITLE}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='color:#6b7280;margin-top:-12px;margin-bottom:24px;'>{APP_SUBTITLE}</p>", unsafe_allow_html=True)
 
-    # Student info
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Your Information</div>", unsafe_allow_html=True)
     col1, col2 = st.columns([2, 1])
-    name  = col1.text_input("Full name", placeholder="Enter your name", label_visibility="visible")
-    grade = col2.selectbox("Grade", GRADE_RANGE, format_func=lambda g: f"Grade {g}")
+    name         = col1.text_input("Full name", placeholder="Enter your name", label_visibility="visible")
+    # selectbox returns Any; store raw then cast to int only when passing to append_student_answers
+    grade_raw    = col2.selectbox("Grade", GRADE_RANGE, format_func=lambda g: f"Grade {g}")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Questions
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Exam Questions</div>", unsafe_allow_html=True)
     st.caption("Answer every question before submitting.")
 
     question_df  = load_questions()
-    answers      = {}
-    all_answered = True
+    answers: dict = {}
+    all_answered  = True
 
     for g in GRADE_RANGE:
         grade_qs = question_df[question_df["Grade"] == g]
@@ -302,10 +283,9 @@ def render_exam_page():
             if chosen is None:
                 all_answered = False
             else:
-                answers[q_id] = chosen[0]
+                answers[str(q_id)] = chosen[0]
         st.divider()
 
-    # Optional explanation
     st.markdown("<div class='section-title'>Optional: Explain Your Thinking</div>", unsafe_allow_html=True)
     st.caption("If you want more personalised feedback, describe how you approached the questions you found hardest.")
     explanation = st.text_area(
@@ -316,14 +296,14 @@ def render_exam_page():
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Submit
     if st.button("Submit Exam", type="primary", use_container_width=True):
         if not name.strip():
             st.error("Please enter your name.")
         elif not all_answered:
             st.error("Please answer all questions before submitting.")
         else:
-            sid = generate_student_id()
+            sid   = generate_student_id()
+            grade = int(grade_raw) if grade_raw is not None else GRADE_RANGE[0]
             append_student_answers(sid, name.strip(), grade, answers)
             st.session_state.update({
                 "student_sid":   sid,
@@ -340,14 +320,13 @@ def render_exam_page():
 # PAGE 2 -- RESULTS
 # ---------------------------------------------------------------------------
 
-def render_results_page():
+def render_results_page() -> None:
     sid         = st.session_state.student_sid
-    name        = st.session_state.student_name
+    name        = str(st.session_state.student_name)
     grade       = st.session_state.student_grade
-    explanation = st.session_state.explanation
-    use_llm     = st.sidebar.toggle("AI-powered content", value=True)
+    explanation = str(st.session_state.explanation)
+    use_llm     = bool(st.sidebar.toggle("AI-powered content", value=True))
 
-    # Page header
     st.markdown(f"<h1 style='font-size:1.8rem;font-weight:800;color:#1a1a2e;'>Results for {name}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='color:#6b7280;margin-top:-10px;'>Student ID: {sid} &nbsp;|&nbsp; Grade {grade}</p>", unsafe_allow_html=True)
 
@@ -366,10 +345,9 @@ def render_results_page():
     qbank_df     = r["qbank"]
 
     overall    = sum(scores.values()) / len(scores) if scores else 0.0
-    n_mastered = sum(1 for l in labels.values() if l == "Mastered")
-    n_weak     = sum(1 for l in labels.values() if l == "Weak")
+    n_mastered = sum(1 for lbl in labels.values() if lbl == "Mastered")
+    n_weak     = sum(1 for lbl in labels.values() if lbl == "Weak")
 
-    # Metric row
     cols = st.columns(4)
     metrics = [
         ("Overall Score",     f"{overall:.0%}"),
@@ -377,29 +355,26 @@ def render_results_page():
         ("Weak Concepts",     str(n_weak)),
         ("Cluster Group",     str(cluster_id)),
     ]
-    for col, (label, value) in zip(cols, metrics):
+    for col, (metric_label, value) in zip(cols, metrics):
         col.markdown(
             f"<div class='metric-card'>"
             f"<div class='metric-value'>{value}</div>"
-            f"<div class='metric-label'>{label}</div>"
+            f"<div class='metric-label'>{metric_label}</div>"
             f"</div>",
             unsafe_allow_html=True
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Tabs
     tab_overview, tab_exam, tab_plan = st.tabs(["Overview", "Diagnostic Exam", "Study Plan"])
 
     # -----------------------------------------------------------------------
     # TAB 1 -- OVERVIEW
     # -----------------------------------------------------------------------
     with tab_overview:
-
         col_left, col_right = st.columns([3, 2])
 
         with col_left:
-            # Mastery bar chart
             st.markdown("<div class='card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'>Concept Mastery</div>", unsafe_allow_html=True)
             chart_df = (
@@ -428,7 +403,6 @@ def render_results_page():
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_right:
-            # BKT probability chart
             st.markdown("<div class='card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'>Knowledge Probability (BKT)</div>", unsafe_allow_html=True)
             bkt_df = (
@@ -453,14 +427,13 @@ def render_results_page():
             st.plotly_chart(fig2, use_container_width=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # Root cause and cluster row
         col_a, col_b = st.columns(2)
 
         with col_a:
             st.markdown("<div class='card'>", unsafe_allow_html=True)
             st.markdown("<div class='section-title'>Root Cause Analysis</div>", unsafe_allow_html=True)
             if root_causes:
-                path = " → ".join(learn_order) if learn_order else "None"
+                path = " -> ".join(learn_order) if learn_order else "None"
                 st.markdown(
                     f"<div class='root-box'>"
                     f"<strong>Start here:</strong> {', '.join(root_causes)}<br><br>"
@@ -484,7 +457,6 @@ def render_results_page():
             )
             st.markdown("</div>", unsafe_allow_html=True)
 
-        # AI Feedback
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Personalized Feedback</div>", unsafe_allow_html=True)
         if st.button("Get Feedback", key="btn_feedback"):
@@ -495,7 +467,6 @@ def render_results_page():
                     mastery_scores=scores,
                     use_llm=use_llm,
                 )
-            # FIX 2: escape LLM output to prevent stray HTML chars from breaking the card
             safe_feedback = html.escape(feedback)
             st.markdown(
                 f"<div style='background:#f0fdf4;border-radius:8px;padding:16px 20px;"
@@ -513,34 +484,28 @@ def render_results_page():
         st.markdown("<div class='section-title'>Adaptive Diagnostic Exam</div>", unsafe_allow_html=True)
         if exam:
             st.caption("Questions selected based on your weak and needs-review concepts, ordered Easy to Hard.")
-            # FIX 4: st.code() preserves all whitespace and indentation from
-            # format_exam_report(); st.text() collapses leading spaces.
             st.code(format_exam_report(exam, qbank_df), language=None)
         else:
-            st.success(f"No diagnostic exam needed — {name} has mastered all concepts.")
+            st.success(f"No diagnostic exam needed -- {name} has mastered all concepts.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------------------------
     # TAB 3 -- STUDY PLAN
     # -----------------------------------------------------------------------
     with tab_plan:
-
-        # Misconception detector
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Misconception Analysis</div>", unsafe_allow_html=True)
         if explanation:
             if st.button("Analyse My Explanation", key="btn_misconception"):
                 with st.spinner("Analysing your reasoning..."):
-                    # FIX 3: pass api_key="" when use_llm is off so the
-                    # misconception detector respects the sidebar toggle,
-                    # matching the behaviour of the other two AI buttons.
+                    # None uses the env key; empty string forces the fallback
+                    api_key: Optional[str] = None if use_llm else ""
                     analysis = detect_misconceptions(
                         student_name=name,
                         explanation=explanation,
                         weak_concepts=weak,
-                        api_key=None if use_llm else "",
+                        api_key=api_key,
                     )
-                # FIX 2: escape before HTML injection
                 safe_analysis = html.escape(analysis)
                 st.markdown(
                     f"<div style='background:#fffbeb;border-radius:8px;padding:16px 20px;"
@@ -552,7 +517,6 @@ def render_results_page():
             st.caption("You did not provide an explanation on the exam page. Retake the exam to include one.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Study plan
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='section-title'>Personalized Study Plan</div>", unsafe_allow_html=True)
         if st.button("Generate Study Plan", key="btn_plan"):
@@ -563,7 +527,6 @@ def render_results_page():
                     mastery_scores=scores,
                     use_llm=use_llm,
                 )
-            # FIX 2: escape before HTML injection
             safe_plan = html.escape(plan)
             st.markdown(
                 f"<div style='background:#f8f9fb;border-radius:8px;padding:16px 20px;"
@@ -573,10 +536,8 @@ def render_results_page():
             )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Retake button
     st.divider()
     if st.button("Take Another Exam", use_container_width=True):
-        # Wipe all session state keys defined in defaults to fully reset the app
         for key in list(defaults.keys()):
             del st.session_state[key]
         st.rerun()
