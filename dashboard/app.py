@@ -1,19 +1,14 @@
 """
 dashboard/app.py
 
-Student-facing Streamlit dashboard for Neuro Learn Phase 2.
+Student-facing Streamlit dashboard for Neuro Learn.
 
 Page 1 -- Exam
-    Student enters name and grade, answers all 36 questions grouped by
-    grade level, and optionally provides a free-text explanation of their
-    thinking. On submit, answers are appended to student_answers.csv with
-    an auto-generated Student_ID.
-
-Page 2 -- Results (three tabs)
-    Overview   : mastery bar chart, BKT estimates, root cause path,
-                 cluster group, AI feedback
-    Exam       : adaptive diagnostic exam questions
-    Study Plan : misconception analysis, personalized study plan
+Page 2 -- Results (four tabs)
+    Overview        : mastery bar chart, BKT, root cause, cluster, AI feedback
+    Diagnostic Exam : adaptive exam questions
+    Study Plan      : misconception analysis, personalized study plan
+    Review Schedule : SM-2 spaced repetition review session
 
 Run with:
     streamlit run dashboard/app.py
@@ -44,9 +39,10 @@ from concept_graph             import build_concept_graph, detect_root_causes, g
 from clustering                import cluster_students, describe_clusters
 from misconception_detector    import detect_misconceptions
 from config                    import TIER_COLORS, GRADE_RANGE, APP_TITLE, APP_SUBTITLE
+import sr_service
 
 # ---------------------------------------------------------------------------
-# Page configuration and global styles
+# Page config and global styles
 # ---------------------------------------------------------------------------
 
 st.set_page_config(page_title=APP_TITLE, layout="wide", initial_sidebar_state="collapsed")
@@ -114,6 +110,14 @@ st.markdown("""
         font-size: 0.92rem;
         color: #7c2d12;
     }
+    .due-box {
+        background: #fef9c3;
+        border-left: 4px solid #f59e0b;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 18px;
+        font-size: 0.92rem;
+        color: #78350f;
+    }
     .block-container { padding-top: 2rem; }
     .stTabs [data-baseweb="tab-list"] { gap: 8px; }
     .stTabs [data-baseweb="tab"] {
@@ -125,11 +129,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Initialise the SQLite DB on startup (creates tables if missing)
+sr_service.init_db()
+
 DATA_DIR         = os.path.join(os.path.dirname(__file__), "..", "data")
 ANSWERS_CSV_PATH = os.path.join(DATA_DIR, "student_answers.csv")
 
 # ---------------------------------------------------------------------------
-# Session state initialisation
+# Session state
 # ---------------------------------------------------------------------------
 
 defaults = {
@@ -139,13 +146,21 @@ defaults = {
     "student_sid":   None,
     "student_name":  "",
     "student_grade": GRADE_RANGE[0],
+    # SR review session state
+    "sr_review_active":  False,
+    "sr_due_concepts":   [],
+    "sr_concept_idx":    0,
+    "sr_questions":      [],
+    "sr_q_idx":          0,
+    "sr_answers":        [],
+    "sr_concept_result": None,   # dict returned by record_review_session
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
 # ---------------------------------------------------------------------------
-# Data loading helpers
+# Data helpers
 # ---------------------------------------------------------------------------
 
 @st.cache_data
@@ -185,8 +200,7 @@ def append_student_answers(sid: str, name: str, grade: int, answers: dict) -> No
 
 def run_full_pipeline(sid: str) -> dict:
     """
-    Run the complete Phase 2 pipeline for a single student and return
-    all computed results in a single dict.
+    Run the complete Phase 2 pipeline for a single student.
     Not cached because a new student row may have just been written.
     """
     student_df  = load_student_answers()
@@ -204,23 +218,19 @@ def run_full_pipeline(sid: str) -> dict:
     labels = data.get("labels", {})
     weak   = data.get("weak_concepts", [])
 
-    # BKT estimates
     tracer  = BayesianKnowledgeTracer()
     obs     = build_concept_observations(answer_mat, question_df, sid)
     states  = tracer.trace_student(obs)
     bkt_est = tracer.get_mastery_estimates(states)
 
-    # Concept graph -- root causes and learning order
     graph       = build_concept_graph()
     root_causes = detect_root_causes(scores, graph)
     learn_order = get_learning_order(weak, graph)
 
-    # Clustering
     cluster_labels, cluster_summary = cluster_students(mastery_df)
     cluster_desc    = describe_clusters(cluster_summary)
     student_cluster = int(cluster_labels.get(sid, 0))
 
-    # Diagnostic exam
     exam = generate_diagnostic_exam(
         weak_concepts=weak,
         mastery_scores=scores,
@@ -251,16 +261,15 @@ def render_exam_page() -> None:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Your Information</div>", unsafe_allow_html=True)
     col1, col2 = st.columns([2, 1])
-    name         = col1.text_input("Full name", placeholder="Enter your name", label_visibility="visible")
-    # selectbox returns Any; store raw then cast to int only when passing to append_student_answers
-    grade_raw    = col2.selectbox("Grade", GRADE_RANGE, format_func=lambda g: f"Grade {g}")
+    name      = col1.text_input("Full name", placeholder="Enter your name", label_visibility="visible")
+    grade_raw = col2.selectbox("Grade", GRADE_RANGE, format_func=lambda g: f"Grade {g}")
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Exam Questions</div>", unsafe_allow_html=True)
     st.caption("Answer every question before submitting.")
 
-    question_df  = load_questions()
+    question_df   = load_questions()
     answers: dict = {}
     all_answered  = True
 
@@ -366,7 +375,9 @@ def render_results_page() -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    tab_overview, tab_exam, tab_plan = st.tabs(["Overview", "Diagnostic Exam", "Study Plan"])
+    tab_overview, tab_exam, tab_plan, tab_review = st.tabs([
+        "Overview", "Diagnostic Exam", "Study Plan", "Review Schedule"
+    ])
 
     # -----------------------------------------------------------------------
     # TAB 1 -- OVERVIEW
@@ -498,7 +509,6 @@ def render_results_page() -> None:
         if explanation:
             if st.button("Analyse My Explanation", key="btn_misconception"):
                 with st.spinner("Analysing your reasoning..."):
-                    # None uses the env key; empty string forces the fallback
                     api_key: Optional[str] = None if use_llm else ""
                     analysis = detect_misconceptions(
                         student_name=name,
@@ -536,11 +546,211 @@ def render_results_page() -> None:
             )
         st.markdown("</div>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------------------------
+    # TAB 4 -- REVIEW SCHEDULE
+    # -----------------------------------------------------------------------
+    with tab_review:
+        _render_review_tab(sid, name, scores, qbank_df)
+
     st.divider()
     if st.button("Take Another Exam", use_container_width=True):
         for key in list(defaults.keys()):
             del st.session_state[key]
         st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# REVIEW TAB -- extracted for readability
+# ---------------------------------------------------------------------------
+
+def _render_review_tab(sid: str, name: str, scores: dict, qbank_df) -> None:
+    """
+    Renders the spaced repetition review tab.
+
+    Three states:
+        1. No schedule yet         -- show Init button
+        2. Schedule exists, idle   -- show schedule table + Start Review
+        3. Review active           -- show question or concept result
+    """
+
+    # Auto-initialise schedule on first visit to this tab
+    if not sr_service.schedule_exists(sid):
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>Review Schedule</div>", unsafe_allow_html=True)
+        st.caption("Your spaced repetition schedule has not been set up yet.")
+        if st.button("Set Up Review Schedule", key="btn_init_sr"):
+            sr_service.initialise_schedule(sid, scores)
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    # ---- Active review session ------------------------------------------
+    if st.session_state.sr_review_active:
+        _render_review_session(sid, qbank_df)
+        return
+
+    # ---- Idle: show schedule table + start button ----------------------
+    schedule  = sr_service.get_schedule(sid)
+    due       = sr_service.get_due_concepts(sid)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Your Review Schedule</div>", unsafe_allow_html=True)
+
+    table_data = pd.DataFrame(schedule)[
+        ["concept", "status", "due_date", "interval_days", "ease_factor", "last_score"]
+    ].rename(columns={
+        "concept":      "Concept",
+        "status":       "Status",
+        "due_date":     "Due Date",
+        "interval_days":"Interval (days)",
+        "ease_factor":  "Ease Factor",
+        "last_score":   "Last Score",
+    })
+    table_data["Last Score"] = table_data["Last Score"].apply(
+        lambda v: f"{v:.0%}" if v is not None else "--"
+    )
+    st.dataframe(table_data, use_container_width=True, hide_index=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Due today box
+    if due:
+        st.markdown(
+            f"<div class='due-box'>"
+            f"<strong>{len(due)} concept(s) due for review today:</strong> {', '.join(due)}"
+            f"</div><br>",
+            unsafe_allow_html=True
+        )
+        if st.button("Start Review Session", key="btn_start_review", type="primary"):
+            # Load questions for the first due concept and activate session
+            concept    = due[0]
+            status_row = sr_service.get_concept_status(sid, concept)
+            status     = status_row["status"] if status_row else "New"
+            questions  = sr_service.select_review_questions(concept, status, qbank_df)
+            st.session_state.update({
+                "sr_review_active":  True,
+                "sr_due_concepts":   due,
+                "sr_concept_idx":    0,
+                "sr_questions":      questions,
+                "sr_q_idx":          0,
+                "sr_answers":        [],
+                "sr_concept_result": None,
+            })
+            st.rerun()
+    else:
+        st.info("No concepts are due for review today. Check back tomorrow.")
+
+
+def _render_review_session(sid: str, qbank_df) -> None:
+    """
+    Renders the active review session: one question at a time per concept.
+
+    Flow:
+        question -> answer submitted -> next question
+        -> all questions done -> show concept result
+        -> next concept or finish
+    """
+    due_concepts = st.session_state.sr_due_concepts
+    concept_idx  = st.session_state.sr_concept_idx
+    questions    = st.session_state.sr_questions
+    q_idx        = st.session_state.sr_q_idx
+    result       = st.session_state.sr_concept_result
+
+    # All concepts done
+    if concept_idx >= len(due_concepts):
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>Review Session Complete</div>", unsafe_allow_html=True)
+        st.success("You have reviewed all due concepts for today.")
+        if st.button("Back to Schedule", key="btn_review_done"):
+            st.session_state.sr_review_active = False
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    concept = due_concepts[concept_idx]
+
+    # Show concept result before moving on
+    if result is not None:
+        st.markdown("<div class='card'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-title'>Result: {concept}</div>", unsafe_allow_html=True)
+        score_pct = f"{result['score']:.0%}"
+        st.metric("Session Score", score_pct)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("New Status",   result["status"])
+        col2.metric("Next Review",  result["due_date"])
+        col3.metric("Interval",     f"{result['interval_days']} days")
+
+        remaining = len(due_concepts) - concept_idx - 1
+        if remaining > 0:
+            if st.button(f"Next Concept ({remaining} remaining)", key="btn_next_concept", type="primary"):
+                next_concept = due_concepts[concept_idx + 1]
+                next_row     = sr_service.get_concept_status(sid, next_concept)
+                next_status  = next_row["status"] if next_row else "New"
+                next_qs      = sr_service.select_review_questions(next_concept, next_status, qbank_df)
+                st.session_state.update({
+                    "sr_concept_idx":    concept_idx + 1,
+                    "sr_questions":      next_qs,
+                    "sr_q_idx":          0,
+                    "sr_answers":        [],
+                    "sr_concept_result": None,
+                })
+                st.rerun()
+        else:
+            if st.button("Finish Review", key="btn_finish_review", type="primary"):
+                st.session_state.sr_review_active = False
+                st.session_state.sr_concept_result = None
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    # No questions available for this concept
+    if not questions:
+        st.warning(f"No review questions found for {concept}. Skipping.")
+        st.session_state.sr_concept_idx += 1
+        st.rerun()
+        return
+
+    # All questions for this concept answered — score and update schedule
+    if q_idx >= len(questions):
+        result = sr_service.record_review_session(
+            sid, concept, st.session_state.sr_answers
+        )
+        st.session_state.sr_concept_result = result
+        st.rerun()
+        return
+
+    # Show current question
+    q = questions[q_idx]
+    progress = q_idx / len(questions)
+
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='section-title'>"
+        f"Reviewing: {concept} &nbsp; ({q_idx + 1} / {len(questions)})"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+    st.progress(progress)
+    st.markdown(f"**[{q['difficulty']}]** {q['text']}")
+
+    option_labels = [f"{k}) {v}" for k, v in q["options"].items()]
+    chosen = st.radio(
+        label="Select your answer",
+        options=option_labels,
+        index=None,
+        key=f"sr_q_{concept_idx}_{q_idx}",
+        label_visibility="collapsed",
+    )
+
+    if st.button("Submit Answer", key=f"sr_submit_{concept_idx}_{q_idx}", type="primary"):
+        if chosen is None:
+            st.warning("Please select an answer before submitting.")
+        else:
+            is_correct = chosen[0] == q["correct"]
+            st.session_state.sr_answers.append(is_correct)
+            st.session_state.sr_q_idx += 1
+            st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
