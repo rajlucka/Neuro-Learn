@@ -58,7 +58,8 @@ app = FastAPI(title="Neuro Learn API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",   # Vite dev server
+        "http://localhost:5173",   # Vite default
+        "http://localhost:8080",   # Vite alternate port
         "http://localhost:4173",   # Vite preview
     ],
     allow_credentials=True,
